@@ -76,9 +76,10 @@ impl ApplicationHandler for AppState {
         drop(config_guard);
 
         if movement_vector[0].abs() > deadzone || movement_vector[1].abs() > deadzone {
-            let mouse_input = MouseMovementInput {
+            let mouse_input = MouseMovementInput{
                 movement_vector,
                 sensitivity_factor,
+                deadzone,
             };
             movement_control(mouse_input);
         }
@@ -94,7 +95,10 @@ pub fn run_event_loop(config: Arc<Mutex<Config>>) -> Result<(), Box<dyn std::err
 
     let app_setup = setup_app()?;
     let gilrs = Gilrs::new()?;
-
+    // Iterate over all connected gamepads
+    for (_id, gamepad) in gilrs.gamepads() {
+        println!("Following gamepad detected: {} is {:?}", gamepad.name(), gamepad.power_info());
+    }
     let mut app_state = AppState {
         gilrs,
         config,
