@@ -4,10 +4,11 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Configuration struct for gamepad to mouse mapping
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// Mapping between gamepad buttons and their corresponding actions
-    pub button_mapping: HashMap<u32, ButtonAction>,
+    pub button_mapping: HashMap<String, ButtonAction>,
+    // button_mapping is not int32 because not valid toml key type.
     /// Which joystick to use for mouse movement (left or right)
     pub mouse_joystick: Joystick,
     /// Default sensitivity for mouse movement
@@ -36,22 +37,19 @@ pub enum ButtonAction {
     MouseLeft,
     MouseRight,
     MouseMiddle,
-    KeyboardKey(u32),
     None,
 }
 
 impl Default for Config {
     fn default() -> Self {
         let mut button_mapping = HashMap::new();
-        button_mapping.insert(0, ButtonAction::MouseLeft); // A button
-        button_mapping.insert(1, ButtonAction::MouseRight); // B button
-        button_mapping.insert(2, ButtonAction::KeyboardKey(0x1B)); // X button -> Escape
-        button_mapping.insert(3, ButtonAction::KeyboardKey(0x0D)); // Y button -> Enter
+        button_mapping.insert("0".to_string(), ButtonAction::MouseLeft); // A button
+        button_mapping.insert("1".to_string(), ButtonAction::MouseRight); // B button
 
         Self {
             button_mapping,
             mouse_joystick: Joystick::Left,
-            mouse_sensitivity: 1.0,
+            mouse_sensitivity: 0.01,
             aim_button: 6, // Left trigger
             aim_sensitivity_factor: 0.3,
             // The min mouse sensitivity is to avoid that we press aim and the mouse stops moving.
@@ -98,12 +96,12 @@ impl Config {
 
     /// Adds or updates a button mapping
     pub fn set_button_mapping(&mut self, button: u32, action: ButtonAction) {
-        self.button_mapping.insert(button, action);
+        self.button_mapping.insert(button.to_string(), action);
     }
 
     /// Gets the action for a specific button
     pub fn get_button_action(&self, button: u32) -> Option<&ButtonAction> {
-        self.button_mapping.get(&button)
+        self.button_mapping.get(&button.to_string())
     }
 
     /// Gets the default config file path
@@ -123,6 +121,7 @@ impl Config {
         };
 
         let toml_string = toml::to_string_pretty(self)?;
+        println!("Trying to save configuration file into {}", toml_string);
         fs::write(save_path, toml_string)?;
         Ok(())
     }
@@ -135,7 +134,10 @@ impl Config {
         };
 
         if !load_path.exists() {
-            return Ok(Self::default());
+            let config = Self::default();
+            // Its ok to panic, if we cant save the file it means we cant start.
+            config.save_to_file(Some(&load_path))?;
+            return Ok(config);
         }
 
         let content = fs::read_to_string(load_path)?;

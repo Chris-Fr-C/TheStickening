@@ -38,6 +38,7 @@ impl ApplicationHandler for AppState {
         while let Some(gil_event) = self.gilrs.next_event() {
             match gil_event.event {
                 EventType::AxisChanged(axis, value, _) => {
+                    println!("Axis changed");
                     let config_guard = self.config.lock().unwrap();
                     let joystick = config_guard.mouse_joystick;
                     drop(config_guard);
@@ -56,6 +57,7 @@ impl ApplicationHandler for AppState {
                     }
                 }
                 EventType::ButtonChanged(button, value, _) => {
+                    println!("Button pressed");
                     let config_guard = self.config.lock().unwrap();
                     if let Button::Unknown = button {
                         // Button::Unknown means we need to compare the raw button code
@@ -92,10 +94,11 @@ impl ApplicationHandler for AppState {
 /// The box thingy is to handle any type of error.
 pub fn run_event_loop(config: Arc<Mutex<Config>>) -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = EventLoop::new()?;
-
+    println!("Starting up");
     let app_setup = setup_app()?;
     let gilrs = Gilrs::new()?;
     // Iterate over all connected gamepads
+    println!("Looking for controlers...");
     for (_id, gamepad) in gilrs.gamepads() {
         println!("Following gamepad detected: {} is {:?}", gamepad.name(), gamepad.power_info());
     }
@@ -104,7 +107,7 @@ pub fn run_event_loop(config: Arc<Mutex<Config>>) -> Result<(), Box<dyn std::err
         config,
         app_setup,
     };
-
+    println!("Starting event loop");
     event_loop.run_app(&mut app_state)?;
 
     Ok(())

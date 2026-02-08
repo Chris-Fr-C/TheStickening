@@ -30,6 +30,7 @@ pub fn movement_control(input: MouseMovementInput) {
     };
     let delta_x = (horizontal * sensitivity) as i32;
     let delta_y = (vertical * sensitivity) as i32;
+    println!("Moving delta {} {}", delta_x, delta_y);
     if delta_x != 0 || delta_y != 0 {
         #[cfg(target_os = "windows")]
         {
