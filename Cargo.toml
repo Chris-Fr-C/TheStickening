@@ -1,0 +1,13 @@
+[package]
+name = "thestickening"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gilrs = "0.11.1"
+tray-icon = "0.14"
+winit = "0.30"
+tokio = { version = "1.0", features = ["full"] }
+dirs = "5.0"
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }

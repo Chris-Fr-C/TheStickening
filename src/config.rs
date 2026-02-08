@@ -1,0 +1,137 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+
+/// Configuration struct for gamepad to mouse mapping
+#[derive(Serialize, Deserialize)]
+pub struct Config {
+    /// Mapping between gamepad buttons and their corresponding actions
+    pub button_mapping: HashMap<u32, ButtonAction>,
+    /// Which joystick to use for mouse movement (left or right)
+    pub mouse_joystick: Joystick,
+    /// Default sensitivity for mouse movement
+    pub mouse_sensitivity: f32,
+    /// Button mapped for accurate aiming mode (default: left trigger)
+    pub aim_button: u32,
+    /// Sensitivity decrease factor when aiming
+    pub aim_sensitivity_factor: f32,
+}
+
+/// Represents available joysticks
+/// If you have more than two joystick, I do not support general grievous playing style :(
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Joystick {
+    Left,
+    Right,
+}
+
+/// Represents actions that can be triggered by buttons
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ButtonAction {
+    MouseLeft,
+    MouseRight,
+    MouseMiddle,
+    KeyboardKey(u32),
+    None,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let mut button_mapping = HashMap::new();
+        button_mapping.insert(0, ButtonAction::MouseLeft); // A button
+        button_mapping.insert(1, ButtonAction::MouseRight); // B button
+        button_mapping.insert(2, ButtonAction::KeyboardKey(0x1B)); // X button -> Escape
+        button_mapping.insert(3, ButtonAction::KeyboardKey(0x0D)); // Y button -> Enter
+
+        Self {
+            button_mapping,
+            mouse_joystick: Joystick::Left,
+            mouse_sensitivity: 1.0,
+            aim_button: 6, // Left trigger
+            aim_sensitivity_factor: 0.3,
+        }
+    }
+}
+
+impl Config {
+    /// Creates a new configuration with default values
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the mouse joystick
+    pub fn set_mouse_joystick(&mut self, joystick: Joystick) {
+        self.mouse_joystick = joystick;
+    }
+
+    /// Sets the mouse sensitivity
+    pub fn set_mouse_sensitivity(&mut self, sensitivity: f32) -> Result<(), &'static str> {
+        if sensitivity <= 0.0 {
+            return Err("Sensitivity must be positive");
+        }
+        self.mouse_sensitivity = sensitivity;
+        Ok(())
+    }
+
+    /// Sets the aim button
+    pub fn set_aim_button(&mut self, button: u32) {
+        self.aim_button = button;
+    }
+
+    /// Sets the aim sensitivity factor
+    pub fn set_aim_sensitivity_factor(&mut self, factor: f32) -> Result<(), &'static str> {
+        if factor <= 0.0 || factor > 1.0 {
+            return Err("Aim sensitivity factor must be between 0 and 1");
+        }
+        self.aim_sensitivity_factor = factor;
+        Ok(())
+    }
+
+    /// Adds or updates a button mapping
+    pub fn set_button_mapping(&mut self, button: u32, action: ButtonAction) {
+        self.button_mapping.insert(button, action);
+    }
+
+    /// Gets the action for a specific button
+    pub fn get_button_action(&self, button: u32) -> Option<&ButtonAction> {
+        self.button_mapping.get(&button)
+    }
+
+    /// Gets the default config file path
+    pub fn get_default_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+        let mut path = dirs::config_dir().ok_or("Failed to get config directory")?;
+        path.push("thestickening");
+        fs::create_dir_all(&path)?;
+        path.push("config.toml");
+        Ok(path)
+    }
+
+    /// Saves the configuration to a TOML file
+    pub fn save_to_file(&self, path: Option<&PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+        let save_path = match path {
+            Some(p) => p.clone(),
+            None => Self::get_default_path()?,
+        };
+
+        let toml_string = toml::to_string_pretty(self)?;
+        fs::write(save_path, toml_string)?;
+        Ok(())
+    }
+
+    /// Loads configuration from a TOML file
+    pub fn load_from_file(path: Option<&PathBuf>) -> Result<Self, Box<dyn std::error::Error>> {
+        let load_path = match path {
+            Some(p) => p.clone(),
+            None => Self::get_default_path()?,
+        };
+
+        if !load_path.exists() {
+            return Ok(Self::default());
+        }
+
+        let content = fs::read_to_string(load_path)?;
+        let config: Config = toml::from_str(&content)?;
+        Ok(config)
+    }
+}
