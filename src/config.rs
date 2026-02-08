@@ -16,6 +16,10 @@ pub struct Config {
     pub aim_button: u32,
     /// Sensitivity decrease factor when aiming
     pub aim_sensitivity_factor: f32,
+    /// Minimum mouse sensitivity allowed
+    pub min_mouse_sensitivity: f32,
+    /// Joystick deadzone for detecting movement
+    pub joystick_deadzone: f32,
 }
 
 /// Represents available joysticks
@@ -50,6 +54,10 @@ impl Default for Config {
             mouse_sensitivity: 1.0,
             aim_button: 6, // Left trigger
             aim_sensitivity_factor: 0.3,
+            // The min mouse sensitivity is to avoid that we press aim and the mouse stops moving.
+            min_mouse_sensitivity: 0.1,
+            // The joystick deadzone is to avoid mouse movement when the joystick is at rest.
+            joystick_deadzone: 0.1,
         }
     }
 }

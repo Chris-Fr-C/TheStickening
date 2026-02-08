@@ -1,8 +1,5 @@
 /// Interface for platform-specific app setup
-use tray_icon::{
-    menu::{Menu, MenuItem},
-    TrayIcon,
-};
+use tray_icon::{menu::MenuItem, TrayIcon};
 
 /// Trait for platform-specific setup implementations
 pub trait SetupInterface {

@@ -1,5 +1,6 @@
 mod config;
 mod eventloop;
+mod mouse;
 mod setupapp;
 mod setupinterface;
 
