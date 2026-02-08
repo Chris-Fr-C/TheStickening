@@ -1,3 +1,4 @@
+use gilrs::{Axis, Button};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -14,11 +15,14 @@ pub struct Config {
     /// Default sensitivity for mouse movement
     pub mouse_sensitivity: f32,
     /// Button mapped for accurate aiming mode (default: left trigger)
-    pub aim_button: u32,
-    /// Sensitivity decrease factor when aiming
+    pub aim_button: Button,
+    /// Sensitivity decrease factor when aiming. Ratio between 0 and 1. (or more if you want it to
+    /// get faster somehow). The total sensitivity will be mutiplied at maximum at that value.
+    /// For instance a trigger fully pressed with aim_sensitivity_factor = 0.5 means we will divide
+    /// by two the speed of the cursor.
+    /// Just make sure you have mouse_sensitivity / aim_sensitivity_factor >= 1 because it has to
+    /// end up to pixels.
     pub aim_sensitivity_factor: f32,
-    /// Minimum mouse sensitivity allowed
-    pub min_mouse_sensitivity: f32,
     /// Joystick deadzone for detecting movement
     pub joystick_deadzone: f32,
 }
@@ -29,6 +33,20 @@ pub struct Config {
 pub enum Joystick {
     Left,
     Right,
+}
+impl Joystick {
+    pub fn y_axis(&self) -> Axis {
+        match self {
+            Self::Left => Axis::LeftStickY,
+            Self::Right => Axis::RightStickY,
+        }
+    }
+    pub fn x_axis(&self) -> Axis {
+        match self {
+            Self::Left => Axis::LeftStickX,
+            Self::Right => Axis::RightStickX,
+        }
+    }
 }
 
 /// Represents actions that can be triggered by buttons
@@ -49,13 +67,12 @@ impl Default for Config {
         Self {
             button_mapping,
             mouse_joystick: Joystick::Left,
-            mouse_sensitivity: 0.01,
-            aim_button: 6, // Left trigger
-            aim_sensitivity_factor: 0.3,
+            mouse_sensitivity: 3.0,
+            aim_button: Button::LeftTrigger2, // Left trigger
+            aim_sensitivity_factor: 0.33,     // Decreases up to
             // The min mouse sensitivity is to avoid that we press aim and the mouse stops moving.
-            min_mouse_sensitivity: 0.1,
             // The joystick deadzone is to avoid mouse movement when the joystick is at rest.
-            joystick_deadzone: 0.1,
+            joystick_deadzone: 0.005,
         }
     }
 }
@@ -79,21 +96,6 @@ impl Config {
         self.mouse_sensitivity = sensitivity;
         Ok(())
     }
-
-    /// Sets the aim button
-    pub fn set_aim_button(&mut self, button: u32) {
-        self.aim_button = button;
-    }
-
-    /// Sets the aim sensitivity factor
-    pub fn set_aim_sensitivity_factor(&mut self, factor: f32) -> Result<(), &'static str> {
-        if factor <= 0.0 || factor > 1.0 {
-            return Err("Aim sensitivity factor must be between 0 and 1");
-        }
-        self.aim_sensitivity_factor = factor;
-        Ok(())
-    }
-
     /// Adds or updates a button mapping
     pub fn set_button_mapping(&mut self, button: u32, action: ButtonAction) {
         self.button_mapping.insert(button.to_string(), action);

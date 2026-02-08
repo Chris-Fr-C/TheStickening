@@ -11,10 +11,9 @@ mod setupwin;
 mod setuplinux;
 
 use config::Config;
-use std::sync::{Arc, Mutex};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = Arc::new(Mutex::new(Config::load_from_file(None)?));
+    let config = Config::load_from_file(None)?;
     println!("Configuration loaded.");
     eventloop::run_event_loop(config)?;
     Ok(())

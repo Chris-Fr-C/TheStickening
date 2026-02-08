@@ -1,4 +1,5 @@
 /// Mouse movement input structure
+#[derive(Debug)]
 pub struct MouseMovementInput {
     /// Horizontal and vertical movement vector
     pub movement_vector: [f32; 2],
@@ -9,10 +10,9 @@ pub struct MouseMovementInput {
 }
 
 /// Handles mouse movement based on input
-pub fn movement_control(input: MouseMovementInput) {
+pub fn movement_control(input: &MouseMovementInput) {
     let sensitivity = input.sensitivity_factor;
     let [mut horizontal, mut vertical] = input.movement_vector;
-
     if horizontal.abs() < input.deadzone && vertical.abs() < input.deadzone {
         return;
     }
@@ -28,9 +28,11 @@ pub fn movement_control(input: MouseMovementInput) {
         // Lol might be overkill to put the else statement but eh
         vertical
     };
+    // the Y axis is inverted when sent to screen.
     let delta_x = (horizontal * sensitivity) as i32;
-    let delta_y = (vertical * sensitivity) as i32;
-    println!("Moving delta {} {}", delta_x, delta_y);
+    // If you wanna buffer overflow its due to your config.
+    let delta_y = (vertical * sensitivity) as i32 * -1;
+    println!("{} {}", delta_x, delta_y);
     if delta_x != 0 || delta_y != 0 {
         #[cfg(target_os = "windows")]
         {
