@@ -25,6 +25,10 @@ pub struct Config {
     pub aim_sensitivity_factor: f32,
     /// Joystick deadzone for detecting movement
     pub joystick_deadzone: f32,
+
+    /// Not rendering every frame as we could not slow down enough the mouse.
+    /// Specify it in hertz.
+    pub frequency: f32,
 }
 
 /// Represents available joysticks
@@ -67,12 +71,13 @@ impl Default for Config {
         Self {
             button_mapping,
             mouse_joystick: Joystick::Left,
-            mouse_sensitivity: 3.0,
+            mouse_sensitivity: 10.0,
             aim_button: Button::LeftTrigger2, // Left trigger
             aim_sensitivity_factor: 0.33,     // Decreases up to
             // The min mouse sensitivity is to avoid that we press aim and the mouse stops moving.
             // The joystick deadzone is to avoid mouse movement when the joystick is at rest.
             joystick_deadzone: 0.005,
+            frequency: 5.,
         }
     }
 }

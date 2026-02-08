@@ -28,11 +28,15 @@ pub fn movement_control(input: &MouseMovementInput) {
         // Lol might be overkill to put the else statement but eh
         vertical
     };
+
     // the Y axis is inverted when sent to screen.
     let delta_x = (horizontal * sensitivity) as i32;
     // If you wanna buffer overflow its due to your config.
-    let delta_y = (vertical * sensitivity) as i32 * -1;
-    println!("{} {}", delta_x, delta_y);
+    let delta_y = (-vertical * sensitivity) as i32;
+    print!(
+        "x {} dx {} y {} dy {}  sensitivity {}                \r",
+        horizontal, delta_x, vertical, delta_y, sensitivity
+    );
     if delta_x != 0 || delta_y != 0 {
         #[cfg(target_os = "windows")]
         {
