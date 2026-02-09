@@ -29,6 +29,7 @@ pub fn click_control(btn: &crate::config::ButtonAction, event: &gilrs::EventType
             &crate::config::ButtonAction::MouseRight => {
                 [MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP]
             }
+            _ => [MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP], // Defaulting to left click atm
         };
         let action = match event {
             gilrs::EventType::ButtonPressed(_, _) => down,

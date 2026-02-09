@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::mouse::{MouseMovementInput, click_control, movement_control};
 use crate::setupapp::{AppSetup, setup_app};
 use gilrs::{EventType, Gilrs};
+use std::f32::consts::PI;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -168,12 +169,28 @@ fn smooth_profile(value: f32, profile: &crate::config::AccelerationProfile) -> R
         }
 
         crate::config::AccelerationProfile::EaseIn => |x| x * x,
-        crate::config::AccelerationProfile::EaseInOut => todo!("EaseInOut not implemented"),
+        crate::config::AccelerationProfile::EaseInOut => |x: f32| -> f32 {
+            if x < 0.5 {
+                2.0 * x * x
+            } else {
+                1.0 - ((-2.0 * x + 2.0).powi(2)) / 2.0
+            }
+        },
         crate::config::AccelerationProfile::EaseOut => |x| 1. - (1. - x) * (1. - x),
         crate::config::AccelerationProfile::SinusoidalEasing => {
-            todo!("SinusoidalEasing not implemented")
+            |x: f32| -> f32 { 0.5 - 0.5 * (PI * x).cos() }
         }
-        crate::config::AccelerationProfile::EaseInOutExpo => todo!("EaseInOutExpo not implemented"),
+        crate::config::AccelerationProfile::EaseInOutExpo => |x: f32| -> f32 {
+            if x == 0.0 {
+                0.0
+            } else if x == 1.0 {
+                1.0
+            } else if x < 0.5 {
+                (2.0_f32).powf(20.0 * x - 10.0) / 2.0
+            } else {
+                (2.0 - (2.0_f32).powf(-20.0 * x + 10.0)) / 2.0
+            }
+        },
     };
     Ok(value.signum() * smoothing_function(value.abs()))
 }
