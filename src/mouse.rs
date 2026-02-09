@@ -10,6 +10,11 @@ pub struct MouseMovementInput {
 }
 
 pub fn click_control(btn: &crate::config::ButtonAction, event: &gilrs::EventType) {
+    #[cfg(target_os = "linux")]
+    {
+        todo!("Linux not supported")
+    }
+
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
@@ -30,7 +35,6 @@ pub fn click_control(btn: &crate::config::ButtonAction, event: &gilrs::EventType
             _ => up,
         };
         unsafe {
-            println!("Emitting mouse evnet for {}", action);
             // the 0 is cause we dont use the wheel
             mouse_event(action, 0, 0, 0, 0);
         }

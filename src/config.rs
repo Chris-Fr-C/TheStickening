@@ -25,6 +25,10 @@ pub struct Config {
     pub aim_sensitivity_factor: f32,
     /// Joystick deadzone for detecting movement
     pub joystick_deadzone: f32,
+    /// Axis smoothing
+    pub zaxis_smoothing: AccelerationProfile,
+    pub left_joystick_smoothing: AccelerationProfile,
+    pub right_joystick_smoothing: AccelerationProfile,
 
     /// Not rendering every frame as we could not slow down enough the mouse.
     /// Specify it in hertz.
@@ -53,12 +57,34 @@ impl Joystick {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AccelerationProfile {
+    Linear,
+    SmoothStep,       // f(t) = t² (3 − 2t)
+    SmootherStep,     // f(t) = t³ (t (6t − 15) + 10)
+    EaseIn,           // f(t) = t²   (or t³)
+    EaseInOut,        // f(t) = t < 0.5 ? 2t² : 1 − (−2t + 2)² / 2
+    EaseOut,          // f(t) = 1 − (1 − t)²
+    SinusoidalEasing, // f(t) = 0.5 − 0.5 cos(πt)
+    EaseInOutExpo,    // Where
+                      // f(t) =
+                      // t == 0 ? 0 :
+                      // t == 1 ? 1 :
+                      // t < 0.5 ? 2^(20t − 10)/2 :
+                      // (2 − 2^(−20t + 10))/2
+}
+
 /// Represents actions that can be triggered by buttons
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ButtonAction {
     MouseLeft,
     MouseRight,
     MouseMiddle,
+    // Note this does not aim to cover all buttons.
+    LeftArrow,
+    RightArrow,
+    UpArrow,
+    DownArrow,
 }
 
 impl Default for Config {
@@ -77,39 +103,14 @@ impl Default for Config {
             // The joystick deadzone is to avoid mouse movement when the joystick is at rest.
             joystick_deadzone: 0.005,
             frequency: 50.,
+            zaxis_smoothing: AccelerationProfile::SmootherStep,
+            left_joystick_smoothing: AccelerationProfile::SmootherStep,
+            right_joystick_smoothing: AccelerationProfile::SmootherStep,
         }
     }
 }
 
 impl Config {
-    /// Creates a new configuration with default values
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Sets the mouse joystick
-    pub fn set_mouse_joystick(&mut self, joystick: Joystick) {
-        self.mouse_joystick = joystick;
-    }
-
-    /// Sets the mouse sensitivity
-    pub fn set_mouse_sensitivity(&mut self, sensitivity: f32) -> Result<(), &'static str> {
-        if sensitivity <= 0.0 {
-            return Err("Sensitivity must be positive");
-        }
-        self.mouse_sensitivity = sensitivity;
-        Ok(())
-    }
-    /// Adds or updates a button mapping
-    pub fn set_button_mapping(&mut self, button: u32, action: ButtonAction) {
-        self.button_mapping.insert(button.to_string(), action);
-    }
-
-    /// Gets the action for a specific button
-    pub fn get_button_action(&self, button: u32) -> Option<&ButtonAction> {
-        self.button_mapping.get(&button.to_string())
-    }
-
     /// Gets the default config file path
     pub fn get_default_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let mut path = dirs::config_dir().ok_or("Failed to get config directory")?;

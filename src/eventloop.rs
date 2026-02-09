@@ -34,7 +34,10 @@ impl ApplicationHandler for AppState {
         let target_duration = Duration::from_secs_f32(1.0 / self.config.frequency);
 
         if now.duration_since(self.last_update) >= target_duration {
-            self.extract_event();
+            match self.extract_event() {
+                Ok(it) => it,
+                Err(err) => println!("An error occured {}", err),
+            };
 
             self.last_update = now;
         }
@@ -45,9 +48,9 @@ impl ApplicationHandler for AppState {
 }
 
 impl AppState {
-    fn extract_event(&mut self) {
+    fn extract_event(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Process all pending gamepad events
-        self.process_event();
+        self.process_event()?;
 
         // Handle mouse movement
         let deadzone = self.config.joystick_deadzone;
@@ -56,26 +59,71 @@ impl AppState {
         {
             movement_control(&self.mouse_input);
         }
+        Ok(())
     }
 
-    fn process_event(&mut self) {
+    fn smooth_axis_event_value(&self, axis: &gilrs::Axis, value: f32) -> Result<f32, &str> {
+        let profile = self.axis_profile(axis)?;
+        // Note we only handle 0 to 1. Sign has to be handled outside.
+        smooth_profile(value, profile)
+    }
+
+    fn smooth_button_event_value(&self, btn: &gilrs::Button, value: f32) -> Result<f32, &str> {
+        let profile = self.button_profile(btn)?;
+        // Note we only handle 0 to 1. Sign has to be handled outside.
+        smooth_profile(value, profile)
+    }
+    fn axis_profile(
+        &self,
+        axis: &gilrs::Axis,
+    ) -> Result<&crate::config::AccelerationProfile, &str> {
+        let profile = match axis {
+            gilrs::Axis::LeftStickX | gilrs::Axis::LeftStickY => {
+                Ok(&self.config.left_joystick_smoothing)
+            }
+            gilrs::Axis::RightStickX | gilrs::Axis::RightStickY => {
+                Ok(&self.config.right_joystick_smoothing)
+            }
+            gilrs::Axis::LeftZ | gilrs::Axis::RightZ => Ok(&self.config.zaxis_smoothing),
+            _ => Err("No profile defined for provided axis"),
+        }?;
+        Ok(profile)
+    }
+
+    fn button_profile(
+        &self,
+        btn: &gilrs::Button,
+    ) -> Result<&crate::config::AccelerationProfile, &str> {
+        let profile = if btn == &self.config.aim_button {
+            &self.config.zaxis_smoothing
+        } else {
+            &crate::config::AccelerationProfile::Linear
+        };
+        Ok(profile)
+    }
+
+    fn process_event(&mut self) -> Result<(), String> {
         while let Some(gil_event) = self.gilrs.next_event() {
             match gil_event.event {
                 EventType::AxisChanged(axis, value, _) => {
+                    let smoothed_value = self.smooth_axis_event_value(&axis, value)?;
+                    // We smooth out based on the joystick
                     if axis == self.config.mouse_joystick.x_axis() {
-                        self.mouse_input.movement_vector[0] = value;
+                        self.mouse_input.movement_vector[0] = smoothed_value;
                     } else if axis == self.config.mouse_joystick.y_axis() {
-                        self.mouse_input.movement_vector[1] = value;
+                        self.mouse_input.movement_vector[1] = smoothed_value;
                     }
                 }
-                EventType::ButtonChanged(id, value, code) => {
+                EventType::ButtonChanged(id, value, _code) => {
                     if id == self.config.aim_button {
+                        let smoothed_value =
+                            self.smooth_button_event_value(&self.config.aim_button, value)?;
                         // Afine function that goes from aim factor to 1
                         let p = self.config.aim_sensitivity_factor;
                         let m = 1. - self.config.aim_sensitivity_factor;
                         // When value == 0 it means we are not touching and the sensitivity should
                         // be at its max possible.
-                        let x = 1. - value.clamp(0., 1.);
+                        let x = 1. - smoothed_value;
                         let modifier = m * x + p;
 
                         self.mouse_input.sensitivity_factor =
@@ -96,6 +144,7 @@ impl AppState {
                 _ => {}
             }
         }
+        Ok(())
     }
 
     fn handle_button(&self, action: &crate::config::ButtonAction, event: &EventType) {
@@ -104,9 +153,29 @@ impl AppState {
             | crate::config::ButtonAction::MouseRight
             | crate::config::ButtonAction::MouseMiddle => {
                 click_control(action, event);
-            } // Here we will add keyboard
+            }
+            _ => todo!("Other buttons not implemented yet"), // Here we will add keyboard
         }
     }
+}
+
+fn smooth_profile(value: f32, profile: &crate::config::AccelerationProfile) -> Result<f32, &str> {
+    let smoothing_function: fn(f32) -> f32 = match profile {
+        crate::config::AccelerationProfile::Linear => |x| x,
+        crate::config::AccelerationProfile::SmoothStep => |x| x * x * (3. - 2. * x),
+        crate::config::AccelerationProfile::SmootherStep => {
+            |x| x * x * x * (x * (6. * x - 15.) + 10.)
+        }
+
+        crate::config::AccelerationProfile::EaseIn => |x| x * x,
+        crate::config::AccelerationProfile::EaseInOut => todo!("EaseInOut not implemented"),
+        crate::config::AccelerationProfile::EaseOut => |x| 1. - (1. - x) * (1. - x),
+        crate::config::AccelerationProfile::SinusoidalEasing => {
+            todo!("SinusoidalEasing not implemented")
+        }
+        crate::config::AccelerationProfile::EaseInOutExpo => todo!("EaseInOutExpo not implemented"),
+    };
+    Ok(value.signum() * smoothing_function(value.abs()))
 }
 
 /// Runs the main event loop
