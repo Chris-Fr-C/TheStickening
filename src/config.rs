@@ -71,13 +71,13 @@ impl Default for Config {
         Self {
             button_mapping,
             mouse_joystick: Joystick::Left,
-            mouse_sensitivity: 10.0,
+            mouse_sensitivity: 5.0,
             aim_button: Button::LeftTrigger2, // Left trigger
-            aim_sensitivity_factor: 0.33,     // Decreases up to
+            aim_sensitivity_factor: 3.,       // Decreases up to if <1, increase up to if >1
             // The min mouse sensitivity is to avoid that we press aim and the mouse stops moving.
             // The joystick deadzone is to avoid mouse movement when the joystick is at rest.
             joystick_deadzone: 0.005,
-            frequency: 5.,
+            frequency: 50.,
         }
     }
 }
