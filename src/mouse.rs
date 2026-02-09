@@ -1,5 +1,3 @@
-use rand::Rng;
-
 /// Mouse movement input structure
 #[derive(Debug)]
 pub struct MouseMovementInput {
@@ -9,6 +7,34 @@ pub struct MouseMovementInput {
     pub sensitivity_factor: f32,
     /// We will ignore moves that dont reach that threshold.
     pub deadzone: f32,
+}
+
+pub fn click_control(btn: &crate::config::ButtonAction, event: &gilrs::EventType) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+            MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP,
+            MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, mouse_event,
+        };
+        let [down, up] = match btn {
+            &crate::config::ButtonAction::MouseLeft => [MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP],
+            &crate::config::ButtonAction::MouseMiddle => {
+                [MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP]
+            }
+            &crate::config::ButtonAction::MouseRight => {
+                [MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP]
+            }
+        };
+        let action = match event {
+            gilrs::EventType::ButtonPressed(_, _) => down,
+            _ => up,
+        };
+        unsafe {
+            println!("Emitting mouse evnet for {}", action);
+            // the 0 is cause we dont use the wheel
+            mouse_event(action, 0, 0, 0, 0);
+        }
+    }
 }
 
 /// Handles mouse movement based on input

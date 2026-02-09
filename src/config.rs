@@ -59,7 +59,6 @@ pub enum ButtonAction {
     MouseLeft,
     MouseRight,
     MouseMiddle,
-    None,
 }
 
 impl Default for Config {
