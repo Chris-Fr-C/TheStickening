@@ -1,11 +1,14 @@
 use iced::widget::{button, column, container, text};
-use iced::{Element, Subscription, Task};
+use iced::window::Event as WindowEvent;
+use iced::{Element, Event, Subscription, Task};
 use std::time::{Duration, Instant};
+use tray_icon::TrayIconEvent;
 
 use crate::config::Config;
 use crate::gamepad::GamepadHandler;
 use crate::menu::SetupComponents;
 use crate::setupapp::setup;
+use crate::tray::{hide_window, show_window, tray_event_subscription};
 
 pub struct StickApp {
     gamepad_handler: Option<GamepadHandler>,
@@ -13,12 +16,17 @@ pub struct StickApp {
     last_update: Instant,
     target_interval: Duration,
     status_message: String,
+    is_visible: bool,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Tick,
     Quit,
+    WindowEvent(Event),
+    TrayEvent(TrayIconEvent),
+    WindowHidden,
+    WindowShown,
 }
 
 impl StickApp {
@@ -36,6 +44,7 @@ impl StickApp {
                 last_update: Instant::now(),
                 target_interval,
                 status_message: String::from("TheStickening is running"),
+                is_visible: true,
             },
             Task::none(),
         ))
@@ -48,22 +57,50 @@ impl StickApp {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Tick => {
-                if let Some(handler) = &mut self.gamepad_handler {
-                    if let Err(e) = handler.process_frame() {
-                        eprintln!("Error processing gamepad: {}", e);
-                    }
+                if let Some(handler) = &mut self.gamepad_handler
+                    && let Err(e) = handler.process_frame()
+                {
+                    eprintln!("Error processing gamepad: {}", e);
                 }
                 self.last_update = Instant::now();
                 Task::none()
             }
             Message::Quit => iced::exit(),
+            Message::WindowEvent(event) => {
+                if let Event::Window(window_event) = event
+                    && window_event == WindowEvent::CloseRequested
+                {
+                    self.is_visible = false;
+                    return hide_window().map(|_| Message::WindowHidden);
+                }
+                Task::none()
+            }
+            Message::TrayEvent(event) => match event {
+                TrayIconEvent::Click { .. } => {
+                    if !self.is_visible {
+                        self.is_visible = true;
+                        return show_window().map(|_| Message::WindowShown);
+                    }
+                    Task::none()
+                }
+                _ => Task::none(),
+            },
+            Message::WindowHidden => Task::none(),
+            Message::WindowShown => Task::none(),
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        let status = if self.is_visible {
+            "Window is visible"
+        } else {
+            "Running in tray - click tray icon to show"
+        };
+
         let content = column![
             text("TheStickening").size(24),
             text(&self.status_message).size(14),
+            text(status).size(12),
             button("Quit").on_press(Message::Quit),
         ]
         .spacing(10)
@@ -73,6 +110,10 @@ impl StickApp {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(self.target_interval).map(|_| Message::Tick)
+        Subscription::batch(vec![
+            iced::time::every(self.target_interval).map(|_| Message::Tick),
+            tray_event_subscription().map(Message::TrayEvent),
+            iced::event::listen().map(Message::WindowEvent),
+        ])
     }
 }
