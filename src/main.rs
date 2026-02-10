@@ -1,15 +1,8 @@
 mod config;
 mod eventloop;
+mod menu;
 mod mouse;
 mod setupapp;
-mod setupinterface;
-
-#[cfg(target_os = "windows")]
-mod setupwin;
-
-#[cfg(target_os = "linux")]
-mod setuplinux;
-
 use config::Config;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

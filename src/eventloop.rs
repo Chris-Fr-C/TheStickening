@@ -1,6 +1,7 @@
 use crate::config::Config;
+use crate::menu::SetupComponents;
 use crate::mouse::{MouseMovementInput, click_control, movement_control};
-use crate::setupapp::{AppSetup, setup_app};
+use crate::setupapp::setup;
 use gilrs::{EventType, Gilrs};
 use std::f32::consts::PI;
 use std::time::{Duration, Instant};
@@ -12,7 +13,7 @@ struct AppState {
     gilrs: Gilrs,
     config: Config,
     mouse_input: MouseMovementInput,
-    app_setup: AppSetup,
+    app_setup: SetupComponents,
     last_update: Instant,
 }
 
@@ -200,7 +201,7 @@ fn smooth_profile(value: f32, profile: &crate::config::AccelerationProfile) -> R
 pub fn run_event_loop(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = EventLoop::new()?;
     println!("Starting up");
-    let app_setup = setup_app()?;
+    let app_setup = setup()?;
     let gilrs = Gilrs::new()?;
     // Iterate over all connected gamepads
     println!("Looking for controlers...");
