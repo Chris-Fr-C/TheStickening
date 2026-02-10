@@ -1,7 +1,7 @@
 use crate::menu::SetupComponents;
 use tray_icon::{
-    BadIcon, Icon, TrayIconBuilder,
     menu::{Menu, MenuItem},
+    BadIcon, Icon, TrayIconBuilder,
 };
 
 pub fn setup() -> Result<SetupComponents, Box<dyn std::error::Error>> {

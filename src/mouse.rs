@@ -18,8 +18,8 @@ pub fn click_control(btn: &crate::config::ButtonAction, event: &gilrs::EventType
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-            MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP,
-            MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, mouse_event,
+            mouse_event, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN,
+            MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
         };
         let [down, up] = match btn {
             &crate::config::ButtonAction::MouseLeft => [MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP],
@@ -91,7 +91,7 @@ pub fn movement_control(input: &MouseMovementInput) {
     if delta_x != 0 || delta_y != 0 {
         #[cfg(target_os = "windows")]
         {
-            use windows_sys::Win32::UI::Input::KeyboardAndMouse::{MOUSEEVENTF_MOVE, mouse_event};
+            use windows_sys::Win32::UI::Input::KeyboardAndMouse::{mouse_event, MOUSEEVENTF_MOVE};
 
             unsafe {
                 // the 0 is cause we dont use the wheel

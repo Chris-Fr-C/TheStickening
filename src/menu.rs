@@ -1,4 +1,4 @@
-use tray_icon::{TrayIcon, menu::MenuItem};
+use tray_icon::{menu::MenuItem, TrayIcon};
 
 /// Common setup components across platforms
 pub struct SetupComponents {
